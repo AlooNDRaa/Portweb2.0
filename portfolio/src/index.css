@@ -1,0 +1,34 @@
+.animation-container {
+    transition: opacity 3s ease-in;
+  }
+  
+  .animation-container.show {
+    opacity: 8;
+  }
+  
+  .animation-container.hide {
+    opacity: 0;
+    pointer-events: none;
+}
+  
+:root{
+    background-color: rgb(255, 255, 255);
+}
+
+
+
+.cont-name{
+    color: black;
+    background-color: burlywood;
+    height: 50vh;
+    border-radius: 1rem;
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;    
+}
+
+.cont-me{
+    display: grid;
+    align-items: center;
+    justify-content: center;
+}
