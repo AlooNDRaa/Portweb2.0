@@ -1,0 +1,4 @@
+metodo delete: DELETE FROM verbum.users 
+    WHERE ID = number of ID;
+    
+ 

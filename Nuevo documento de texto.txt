@@ -1,0 +1,121 @@
+import { Request, Response } from 'express';
+import { Connection } from 'mysql2';
+import { User } from '../../models/user.model';
+
+export const getAllUsers = (db: Connection, req: Request, res: Response) => {
+    const sql = 'SELECT * FROM users';
+    db.query(sql, (err, result) => {
+        if (err) throw err;
+        res.json(req);
+        res.send(result);
+    });
+};
+
+export const createUser = (db: Connection, req: Request, res: Response) => {
+    const { username, email, password } = req.body;
+    const sql = 'INSERT INTO users (username, email, password) VALUES (?, ?, ?)';
+    db.query(sql, [username, email, password], (err, result) => {
+        if (err) {
+            console.error('Error al guardar en la base de datos', err);
+            res.status(500).json({ message: 'Error al registrar usuario' });
+        } else {
+            console.log('Registro exitoso');
+            res.status(200).json({ message: 'Registro exitoso' });
+        }
+    });
+};
+
+export const loginUser = (db: Connection, req: Request, res: Response) => {
+    const { email, password } = req.body;
+    const sql = 'SELECT * FROM users WHERE email = ?';
+
+    db.query(sql, [email], (err, results) => {
+        if (err) {
+            console.error('Error en la consulta: ' + err.message);
+            res.status(500).json({ message: 'Error en el servidor' });
+            return;
+        }
+        if (Array.isArray(results) && results.length > 0) {
+            const user = results[0] as { password: string };
+            if (user.password === password) {
+                res.status(200).json({ message: 'Inicio de sesión exitoso' });
+            } else {
+                res.status(401).json({ message: 'Contraseña incorrecta' });
+            }
+        } else {
+            res.status(401).json({ message: 'Usuario no encontrado' });
+        }
+    });
+};
+
+
+
+
+import { Server as SocketServer, Socket } from 'socket.io';
+import express, { Request, Response } from 'express';
+import mysql, { Connection } from 'mysql2';
+import Console from 'console';
+import dotenv from 'dotenv';
+import http from 'http';
+import axios from 'axios';
+import cors from 'cors'
+import { setupUserRoutes } from '../routes/userRoutes/userRoutes';
+
+
+const PORT = process.env.PORT || 3000;
+const app: express.Application = express();
+const server: http.Server = http.createServer(app);
+const io: SocketServer = new SocketServer(server, {
+  cors: {
+      origin: 'http://localhost:5173',
+  },
+});
+
+const corsOptions = {
+  origin: "http://localhost:5173"
+};
+
+
+app.use(cors(corsOptions));
+app.use(express.json());
+app.set('view engine', 'ejs');
+dotenv.config();
+
+io.on("connection", (socket: Socket) => {
+  Console.log("client connected")
+
+  socket.on ('chat', (body: string) => {
+      console.log(body)
+      console.log(body)
+      socket.broadcast.emit("chat", {
+          body:body,
+          from: socket.id.slice(6)
+        })
+        Console.log(socket.id)
+})})
+
+
+const db: Connection = mysql.createConnection({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+});
+
+db.connect((err) => {
+  if (err) {
+    console.error('Error de conexión a la base de datos', err);
+  } else {
+    console.log('Conexión exitosa a la base de datos');
+  }
+});
+
+app.get('/user', setupUserRoutes(db));
+app.post('/log', setupUserRoutes(db));
+app.post('/', setupUserRoutes(db));
+
+
+
+server.listen(PORT, () => {
+  console.log(`Servidor en ejecución en el puerto http://localhost:${PORT}`);
+});
